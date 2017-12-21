@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>SteemRank</title>
+    <meta property="title" content="SteemRank" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Space+Mono" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+
+<body>
+
+    <div class="content">
+    
+        <h1>Top authors by pending payout</h1>
+
+        <table class="bordered highlight responsive-table" id="authors__pending_payout">
+            <thead>
+              <tr>
+                  <th>Author</th>
+                  <th>Pending payout</th>
+                  <th>Number of posts</th>
+              </tr>
+            </thead>
+
+            <tbody>
+            </tbody>
+      </table>
+    
+    
+    </div>
+
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+
+    <script type="text/javascript">
+
+        $(window).on('load', function(){
+
+            var ajax_data = {
+                query: " \
+                    SELECT TOP 50 author, SUM(pending_payout_value) as pending_payout, COUNT(*) as posts \
+                    FROM Comments \
+                    WHERE \
+                        parent_author='' AND \
+                        created BETWEEN GETDATE()-7 AND GETDATE() \
+                    GROUP BY author \
+                    ORDER BY SUM(pending_payout_value) DESC \
+                ",
+            }
+
+            $.ajax({
+                url: 'https://sql.steemhelpers.com/api',
+                type: 'POST',
+                data: JSON.stringify(ajax_data),
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json'
+            })
+                .done(function(data) {
+
+                    if(data['error']){
+                        return;
+                    }
+
+                    data['rows'].forEach(function(row) {
+
+                        var $tableRow = $('<tr></tr>');
+
+                        data['headers'].forEach(function(title_str) {
+
+                            if(title_str == 'author'){
+
+                                var $authorLink = $('<a></a>');
+                                $authorLink.attr('href', 'https://steemit.com/@' + row[title_str]);
+                                $authorLink.text('@' + row[title_str]);
+                                $authorLink.attr('target', '_blank');
+
+                                var $tableCell = $('<td></td>').append($authorLink);
+                            }
+                            else if(title_str == 'pending_payout'){
+                                var $tableCell = $('<td>$' + row[title_str] + '</td>');
+                            }
+                            else{
+                                var $tableCell = $('<td>' + row[title_str] + '</td>');
+                            }
+                            
+                            $tableRow.append($tableCell);
+                        });
+
+                        $('#authors__pending_payout').append($tableRow);
+                    });
+
+                })
+                .fail(function(data) {
+                    Materialize.toast('Error!', 4000);
+                });
+
+
+
+        }); // $(window).on('load')
+
+
+    </script>
+
+
+
+</body>
+</html>
