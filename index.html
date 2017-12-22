@@ -30,6 +30,10 @@
                   <th>Author</th>
                   <th>Pending payout</th>
                   <th>Number of posts</th>
+                  <th>Number of upvotes</th>
+                  <th>SBD balance</th>
+                  <th>Steem balance</th>
+                  <th>Created</th>
               </tr>
             </thead>
 
@@ -51,13 +55,22 @@
 
             var ajax_data = {
                 query: " \
-                    SELECT TOP 50 author, SUM(pending_payout_value) as pending_payout, COUNT(*) as posts \
-                    FROM Comments \
+                    SELECT TOP 50 \
+                        Comments.author, \
+                        SUM(Comments.pending_payout_value) as pending_payout, \
+                        COUNT(*) as posts, \
+                        SUM(Comments.net_votes) as upvotes, \
+                        Accounts.sbd_balance, \
+                        Accounts.balance, \
+                        Accounts.created \
+                    FROM \
+                        Comments \
+                        INNER JOIN Accounts ON Comments.author = Accounts.name \
                     WHERE \
-                        parent_author='' AND \
-                        created BETWEEN GETDATE()-7 AND GETDATE() \
-                    GROUP BY author \
-                    ORDER BY SUM(pending_payout_value) DESC \
+                        Comments.depth=0 AND \
+                        Comments.created BETWEEN GETDATE()-7 AND GETDATE() \
+                    GROUP BY Comments.author, Accounts.sbd_balance, Accounts.balance, Accounts.created \
+                    ORDER BY SUM(Comments.pending_payout_value) DESC \
                 ",
             }
 
