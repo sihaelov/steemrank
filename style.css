@@ -17,3 +17,26 @@ h1{
     margin-bottom: 50px;
 }
 
+.collection a.collection-item{
+    color: rgba(0,0,0,0.87);
+}
+
+.profile i{
+	color: rgba(0,0,0,0.6);
+}
+
+.profile__data__main > span:not(:last-child):after {
+    content: '|';
+    margin: 0 7px;
+}
+
+.profile__comments i{
+    margin-right: 5px;
+}
+
+.profile__data__main i{
+    font-size: 17px;
+    vertical-align: text-top;
+}
+
+

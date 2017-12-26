@@ -24,23 +24,7 @@
     
         <h1>Top authors by pending payout</h1>
 
-        <table class="bordered highlight responsive-table" id="authors__pending_payout">
-            <thead>
-              <tr>
-                  <th>Author</th>
-                  <th>Pending payout</th>
-                  <th>Number of posts</th>
-                  <th>Number of upvotes</th>
-                  <th>SBD balance</th>
-                  <th>Steem balance</th>
-                  <th>Created</th>
-              </tr>
-            </thead>
-
-            <tbody>
-            </tbody>
-      </table>
-    
+        <div class="collection"></div>
     
     </div>
 
@@ -53,6 +37,21 @@
 
         $(window).on('load', function(){
 
+            var itemHtmlBase = '\
+                <a href="{profile_url}" target="_blank" class="collection-item avatar profile"> \
+                    <img src="{profile_avatar}" class="circle"> \
+                    <span class="title">@{username}</span> \
+                    <div class="profile__data"> \
+                        <p class="profile__data__main"> \
+                            <span title="Pending payout"><i class="material-icons">monetization_on</i> {pending_payout}</span> \
+                            <span title="Number of upvotes"><i class="material-icons">thumb_up</i> {upvotes}</span> \
+                            <span title="Number of posts" class="profile__comments"><i class="fa fa-comments"></i>{posts}</span> \
+                        </p> \
+                        <p>Balance: {sbd_balance} | {steem_balance}</p> \
+                    </div> \
+                </a> \
+            ';
+
             var ajax_data = {
                 query: " \
                     SELECT TOP 50 \
@@ -61,7 +60,7 @@
                         COUNT(*) as posts, \
                         SUM(Comments.net_votes) as upvotes, \
                         Accounts.sbd_balance, \
-                        Accounts.balance, \
+                        Accounts.balance  as steem_balance, \
                         Accounts.created \
                     FROM \
                         Comments \
@@ -89,37 +88,27 @@
 
                     data['rows'].forEach(function(row) {
 
-                        var $tableRow = $('<tr></tr>');
+                        var itemHtml = itemHtmlBase.replace('{username}', row['author']);
+                        var itemHtml = itemHtml.replace('{profile_url}', 'https://steemit.com/@' + row['author']);
+                        var itemHtml = itemHtml.replace('{profile_avatar}', 'https://steemitimages.com/u/' + row['author'] + '/avatar');
 
-                        data['headers'].forEach(function(title_str) {
+                        var itemHtml = itemHtml.replace('{pending_payout}', row['pending_payout']);
+                        var itemHtml = itemHtml.replace('{posts}', row['posts']);
+                        var itemHtml = itemHtml.replace('{upvotes}', row['upvotes']);
+                        var itemHtml = itemHtml.replace('{sbd_balance}', row['sbd_balance']);
+                        var itemHtml = itemHtml.replace('{steem_balance}', row['steem_balance']);
 
-                            if(title_str == 'author'){
+                        // var itemHtml = itemHtml.replace('{created}', row['created']);
 
-                                var $authorLink = $('<a></a>');
-                                $authorLink.attr('href', 'https://steemit.com/@' + row[title_str]);
-                                $authorLink.text('@' + row[title_str]);
-                                $authorLink.attr('target', '_blank');
+                        $item = $(itemHtml);
+                        $('.collection').append($item);
 
-                                var $tableCell = $('<td></td>').append($authorLink);
-                            }
-                            else if(title_str == 'pending_payout'){
-                                var $tableCell = $('<td>$' + row[title_str] + '</td>');
-                            }
-                            else{
-                                var $tableCell = $('<td>' + row[title_str] + '</td>');
-                            }
-                            
-                            $tableRow.append($tableCell);
-                        });
-
-                        $('#authors__pending_payout').append($tableRow);
-                    });
+                    }); // forEach
 
                 })
                 .fail(function(data) {
                     Materialize.toast('Error!', 4000);
                 });
-
 
 
         }); // $(window).on('load')
