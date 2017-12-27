@@ -25,6 +25,20 @@
         <h1>Top authors by pending payout</h1>
 
         <div class="collection"></div>
+
+        <div id="loader" class="center-align" style="display: none;">
+            <div class="preloader-wrapper big active">
+                <div class="spinner-layer spinner-blue-only">
+                  <div class="circle-clipper left">
+                    <div class="circle"></div>
+                  </div><div class="gap-patch">
+                    <div class="circle"></div>
+                  </div><div class="circle-clipper right">
+                    <div class="circle"></div>
+                  </div>
+                </div>
+            </div>
+        </div>
     
     </div>
 
@@ -35,84 +49,113 @@
 
     <script type="text/javascript">
 
+        var itemHtmlBase = '\
+            <a href="{profile_url}" target="_blank" class="collection-item avatar profile"> \
+                <img src="{profile_avatar}" class="circle"> \
+                <span class="title">@{username}</span> \
+                <div class="profile__data"> \
+                    <p class="profile__data__main"> \
+                        <span title="Pending payout"><i class="material-icons">monetization_on</i> {pending_payout}</span> \
+                        <span title="Number of upvotes"><i class="material-icons">thumb_up</i> {upvotes}</span> \
+                        <span title="Number of posts" class="profile__comments"><i class="fa fa-comments"></i>{posts}</span> \
+                    </p> \
+                    <p>Balance: {sbd_balance} | {steem_balance}</p> \
+                </div> \
+                <p class="secondary-content profile__position">{profile__position}</p> \
+            </a> \
+        ';
+
+        var sqlQueryBase = "\
+            SELECT TOP 50 \
+                Comments.author, \
+                SUM(Comments.pending_payout_value) as pending_payout, \
+                COUNT(*) as posts, \
+                SUM(Comments.net_votes) as upvotes, \
+                Accounts.sbd_balance, \
+                Accounts.balance  as steem_balance, \
+                Accounts.created \
+            FROM \
+                Comments \
+                INNER JOIN Accounts ON Comments.author = Accounts.name \
+            WHERE \
+                Comments.depth=0 AND \
+                Comments.created BETWEEN GETDATE()-7 AND GETDATE() \
+            GROUP BY Comments.author, Accounts.sbd_balance, Accounts.balance, Accounts.created \
+            HAVING SUM(Comments.pending_payout_value) < {lastPendingPayoutValue} \
+            ORDER BY SUM(Comments.pending_payout_value) DESC \
+        "
+
+        var lastPendingPayoutValue = 999999;
+        var lastProfileNumber = 1;
+
         $(window).on('load', function(){
 
-            var itemHtmlBase = '\
-                <a href="{profile_url}" target="_blank" class="collection-item avatar profile"> \
-                    <img src="{profile_avatar}" class="circle"> \
-                    <span class="title">@{username}</span> \
-                    <div class="profile__data"> \
-                        <p class="profile__data__main"> \
-                            <span title="Pending payout"><i class="material-icons">monetization_on</i> {pending_payout}</span> \
-                            <span title="Number of upvotes"><i class="material-icons">thumb_up</i> {upvotes}</span> \
-                            <span title="Number of posts" class="profile__comments"><i class="fa fa-comments"></i>{posts}</span> \
-                        </p> \
-                        <p>Balance: {sbd_balance} | {steem_balance}</p> \
-                    </div> \
-                </a> \
-            ';
+            loadData();
 
-            var ajax_data = {
-                query: " \
-                    SELECT TOP 50 \
-                        Comments.author, \
-                        SUM(Comments.pending_payout_value) as pending_payout, \
-                        COUNT(*) as posts, \
-                        SUM(Comments.net_votes) as upvotes, \
-                        Accounts.sbd_balance, \
-                        Accounts.balance  as steem_balance, \
-                        Accounts.created \
-                    FROM \
-                        Comments \
-                        INNER JOIN Accounts ON Comments.author = Accounts.name \
-                    WHERE \
-                        Comments.depth=0 AND \
-                        Comments.created BETWEEN GETDATE()-7 AND GETDATE() \
-                    GROUP BY Comments.author, Accounts.sbd_balance, Accounts.balance, Accounts.created \
-                    ORDER BY SUM(Comments.pending_payout_value) DESC \
-                ",
+            var isLoading = false;
+
+            $(window).scroll(function() {
+                // if ($(document).height() - $(window).height() == $(window).scrollTop() && !isLoading) {
+                if ($(window).scrollTop() + $(window).height() > $(document).height() - 100 && !isLoading) {
+                    loadData();
+                }
+            });
+
+            function loadData() {
+                isLoading = true;
+                $('#loader').show();
+
+                var ajaxData = {
+                    query: sqlQueryBase.replace('{lastPendingPayoutValue}', lastPendingPayoutValue),
+                }
+
+                $.ajax({
+                    url: 'https://sql.steemhelpers.com/api',
+                    type: 'POST',
+                    data: JSON.stringify(ajaxData),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json'
+                })
+                    .done(function(data) {
+                        insertData(data);
+                        $('#loader').hide();
+                        isLoading = false;
+                    })
+                    .fail(function(data) {
+                        Materialize.toast('Error!', 4000);
+                    });
             }
 
-            $.ajax({
-                url: 'https://sql.steemhelpers.com/api',
-                type: 'POST',
-                data: JSON.stringify(ajax_data),
-                contentType: 'application/json; charset=utf-8',
-                dataType: 'json'
-            })
-                .done(function(data) {
+            function insertData(data) {
+                if(data['error']){
+                    return;
+                }
 
-                    if(data['error']){
-                        return;
-                    }
+                data['rows'].forEach(function(row) {
 
-                    data['rows'].forEach(function(row) {
+                    var itemHtml = itemHtmlBase.replace('{username}', row['author']);
+                    var itemHtml = itemHtml.replace('{profile_url}', 'https://steemit.com/@' + row['author']);
+                    var itemHtml = itemHtml.replace('{profile_avatar}', 'https://steemitimages.com/u/' + row['author'] + '/avatar');
 
-                        var itemHtml = itemHtmlBase.replace('{username}', row['author']);
-                        var itemHtml = itemHtml.replace('{profile_url}', 'https://steemit.com/@' + row['author']);
-                        var itemHtml = itemHtml.replace('{profile_avatar}', 'https://steemitimages.com/u/' + row['author'] + '/avatar');
+                    var itemHtml = itemHtml.replace('{pending_payout}', row['pending_payout']);
+                    var itemHtml = itemHtml.replace('{posts}', row['posts']);
+                    var itemHtml = itemHtml.replace('{upvotes}', row['upvotes']);
+                    var itemHtml = itemHtml.replace('{sbd_balance}', row['sbd_balance']);
+                    var itemHtml = itemHtml.replace('{steem_balance}', row['steem_balance']);
 
-                        var itemHtml = itemHtml.replace('{pending_payout}', row['pending_payout']);
-                        var itemHtml = itemHtml.replace('{posts}', row['posts']);
-                        var itemHtml = itemHtml.replace('{upvotes}', row['upvotes']);
-                        var itemHtml = itemHtml.replace('{sbd_balance}', row['sbd_balance']);
-                        var itemHtml = itemHtml.replace('{steem_balance}', row['steem_balance']);
+                    // var itemHtml = itemHtml.replace('{created}', row['created']);
+                    var itemHtml = itemHtml.replace('{profile__position}', lastProfileNumber);
 
-                        // var itemHtml = itemHtml.replace('{created}', row['created']);
+                    $item = $(itemHtml);
+                    $('.collection').append($item);
 
-                        $item = $(itemHtml);
-                        $('.collection').append($item);
-
-                    }); // forEach
-
-                })
-                .fail(function(data) {
-                    Materialize.toast('Error!', 4000);
-                });
-
+                    lastPendingPayoutValue = row['pending_payout'];
+                    lastProfileNumber += 1;
+                }); // forEach
+                
+            } //insertData()
 
         }); // $(window).on('load')
-
 
     </script>
 

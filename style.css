@@ -39,4 +39,8 @@ h1{
     vertical-align: text-top;
 }
 
+.profile__position{
+    font-size: 20px;
+    font-weight: 600;
+}
 
