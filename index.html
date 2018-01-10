@@ -20,9 +20,8 @@
 
 <body>
     
-    <div class="content">
+    <div class="content-wrapper">
 
-        <h1>Top authors by pending payout</h1>
 
         <div class="sorters-wrapper">
             <h3>Sort by</h3>
@@ -34,21 +33,33 @@
             </div>
         </div>
 
+        <div class="content">
 
-        <div class="collection"></div>
-
-        <div id="loader" class="center-align" style="display: none;">
-            <div class="preloader-wrapper big active">
-                <div class="spinner-layer spinner-blue-only">
-                  <div class="circle-clipper left">
-                    <div class="circle"></div>
-                  </div><div class="gap-patch">
-                    <div class="circle"></div>
-                  </div><div class="circle-clipper right">
-                    <div class="circle"></div>
-                  </div>
+            <div class="card top-categories">
+                <h1>Top categories</h1>
+                <div class="center-align">
+                    Loading...
                 </div>
             </div>
+
+            <h1>Top authors</h1>
+
+            <div class="collection author-list"></div>
+
+            <div id="loader" class="center-align" style="display: none;">
+                <div class="preloader-wrapper big active">
+                    <div class="spinner-layer spinner-blue-only">
+                      <div class="circle-clipper left">
+                        <div class="circle"></div>
+                      </div><div class="gap-patch">
+                        <div class="circle"></div>
+                      </div><div class="circle-clipper right">
+                        <div class="circle"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     
     </div>
@@ -61,7 +72,8 @@
     <script type="text/javascript">
 
         var itemHtmlBase = '\
-            <a href="{profile_url}" target="_blank" class="collection-item avatar profile"> \
+            <div class="collection-item avatar profile"> \
+                <a href="{profile_url}" target="_blank" class="profile-link"></a> \
                 <img src="{profile_avatar}" class="circle"> \
                 <span class="title">@{username}</span> \
                 <div class="profile__data"> \
@@ -73,7 +85,7 @@
                     <p>Balance: {sbd_balance} | {steem_balance}</p> \
                 </div> \
                 <p class="secondary-content profile__position">{profile__position}</p> \
-            </a> \
+            </div> \
         ';
 
         var sqlQueryBase = "\
@@ -97,6 +109,14 @@
             ORDER BY SUM(Comments.{sorter}) DESC \
         ";
 
+        var sqlTopCategories = "\
+            SELECT TOP 5 category, SUM(Comments.pending_payout_value) as sum_pending_payout_value \
+            FROM Comments \
+            WHERE depth=0 AND created BETWEEN GETDATE()-7 AND GETDATE() \
+            GROUP BY category \
+            ORDER BY sum_pending_payout_value DESC \
+        ";
+
         var lastProfileValue = 999999;
         var lastProfileNumber = 1;
 
@@ -105,6 +125,7 @@
         $(window).on('load', function(){
 
             loadData();
+            loadTopCategories();
 
             var isLoading = false;
 
@@ -124,7 +145,7 @@
                 lastProfileValue = 999999;
                 lastProfileNumber = 1;
 
-                $('.collection').html('');
+                $('.collection.author-list').html('');
                 loadData();
             });
 
@@ -178,13 +199,42 @@
                     var itemHtml = itemHtml.replace('{profile__position}', lastProfileNumber);
 
                     $item = $(itemHtml);
-                    $('.collection').append($item);
+                    $('.collection.author-list').append($item);
 
                     lastProfileValue = row[curentSorter];
                     lastProfileNumber += 1;
                 }); // forEach
                 
             } //insertData()
+
+            function loadTopCategories() {
+
+                var ajaxData = {
+                    query: sqlTopCategories,
+                }
+
+                $.ajax({
+                    url: 'https://sql.steemhelpers.com/api',
+                    type: 'POST',
+                    data: JSON.stringify(ajaxData),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json'
+                })
+                    .done(function(data) {
+                        $('.top-categories > div').html('');
+
+                        data['rows'].forEach(function(row) {
+                            var $category = $('<div class="chip"></div>');
+                            $category.text(row['category']);
+                            $('.top-categories > div').append($category);
+                        }); // forEach
+
+                    })
+                    .fail(function(data) {
+                        Materialize.toast('Error!', 4000);
+                    });
+
+            }
 
         }); // $(window).on('load')
 

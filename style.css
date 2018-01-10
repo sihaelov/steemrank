@@ -4,15 +4,16 @@ body{
 	margin-bottom: 100px;
 }
 
-.content{
+.content-wrapper{
     max-width: 1200px;
     margin: auto;
     margin-top: 100px;
     padding: 0 20px;
+    position: relative;
 }
 
 /*
-.content{
+.content-wrapper{
     max-width: 1000px;
     margin: auto;
     margin-top: 100px;
@@ -20,19 +21,61 @@ body{
 }
 */
 
-h1{
-    font-size: 20px;
-    text-align: center;
-    margin-bottom: 50px;
-}
-
-.collection{
+.content{
     max-width: 900px;
     margin: auto;
+    text-align: center;
 }
 
-.collection a.collection-item{
+.content h1{
+    font-size: 20px;
+    text-align: center;
+}
+
+.content > .card{
+    margin: 0;
+    padding: 10px 20px;
+    display: inline-block;
+}
+.content > .card > h1{
+    margin: 0;
+    margin-bottom: 10px;
+}
+
+.collection.author-list{
+    text-align: left;
+}
+
+.profile-link{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	z-index: 2;
+}
+
+.profile__top-post{
+	z-index: 3;
+}
+.profile__top-post a{
+	z-index: 3;
+	position: absolute;
+    margin-left: 4px;
+}
+
+.profile__top-post a:hover{
+	text-decoration: underline;
+}
+
+.collection.author-list a.profile{
     color: rgba(0,0,0,0.87);
+}
+
+.collection.author-list .collection-item:hover {
+    background-color: #ddd;
+    background-color: #eee;
 }
 
 .profile i{
@@ -60,6 +103,8 @@ h1{
 
 .sorters-wrapper{
     font-family: Space Mono,monospace;
+    position: absolute;
+    left: 0;
 }
 
 .sorters-wrapper h3{
