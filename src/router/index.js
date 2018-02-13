@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import Homepage from '@/components/Homepage';
 import Bots from '@/components/Bots';
+import Categories from '@/components/Categories';
 
 Vue.use(Router);
 
@@ -16,6 +17,11 @@ export default new Router({
       path: '/bots',
       name: 'bots',
       component: Bots,
+    },
+    {
+      path: '/categories',
+      name: 'categories',
+      component: Categories,
     },
   ],
 });

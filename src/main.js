@@ -4,16 +4,21 @@
 import Vue from 'vue';
 import infiniteScroll from 'vue-infinite-scroll';
 
-import ElementUI from 'element-ui';
+// import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
-import locale from 'element-ui/lib/locale/lang/en';
+import lang from 'element-ui/lib/locale/lang/en';
+import locale from 'element-ui/lib/locale';
+import { Loading } from 'element-ui';
 
 import App from './App';
 import router from './router';
 
 Vue.config.productionTip = false;
 Vue.use(infiniteScroll);
-Vue.use(ElementUI, { locale });
+
+// Vue.use(ElementUI, { lang });
+locale.use(lang);
+Vue.use(Loading.directive);
 
 /* eslint-disable no-new */
 new Vue({

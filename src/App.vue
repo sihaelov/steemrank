@@ -16,8 +16,16 @@
 </template>
 
 <script>
+
+import { Menu, MenuItem } from 'element-ui';
+
+
 export default {
   name: 'app',
+  components: {
+    'el-menu': Menu,
+    'el-menu-item': MenuItem,
+  },
   data() {
     return {
     };

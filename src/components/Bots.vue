@@ -23,12 +23,20 @@
 
 <script>
 
+import { Card, Table, TableColumn } from 'element-ui';
 import steem from 'steem';
+import formatNumberMixin from '@/utils/FormatNumber';
+
+steem.api.setOptions({ url: 'https://api.steemit.com' });
 
 export default {
   name: 'Bots',
   components: {
+    'el-card': Card,
+    'el-table': Table,
+    'el-table-column': TableColumn,
   },
+  mixins: [formatNumberMixin],
   data() {
     return {
       isLoading: false,
@@ -39,82 +47,53 @@ export default {
     loadData() {
       this.isLoading = true;
 
-      const botList = `(
-          'aksdwi',
-          'boomerang',
-          'appreciator',
-          'buildawhale',
-          'upmyvote',
-          'sneaky-ninja',
-          'upme',
-          'jerrybanfield',
-          'booster',
-          'ipromote',
-          'postpromoter',
-          'allaz',
-          'pushup',
-          'minnowhelper'
-        )
-      `;
+      const botList = [
+        'aksdwi',
+        'boomerang',
+        'appreciator',
+        'buildawhale',
+        'upmyvote',
+        'sneaky-ninja',
+        'upme',
+        'jerrybanfield',
+        'booster',
+        'ipromote',
+        'postpromoter',
+        'allaz',
+        'pushup',
+        'minnowhelper',
+      ];
 
-      const sqlBots = `
-        SELECT
-          name,
-          vesting_shares,
-          delegated_vesting_shares,
-          received_vesting_shares
-        FROM Accounts
-        WHERE name IN ${botList}
-      `;
-
+      // SQL:
       // json_metadata, voting_power, reputation
       // vesting_shares, delegated_vesting_shares , received_vesting_shares
 
-      const ajaxData = {
-        query: sqlBots,
-      };
+      // JS:
+      // reward_vesting_balance: "2.047894 VESTS"
+      // reward_vesting_steem:"0.001 STEEM"
 
-      fetch('https://sql.steemhelpers.com/api', {
-        method: 'post',
-        headers: {
-          'Content-type': 'application/json; charset=utf-8',
-        },
-        body: JSON.stringify(ajaxData),
-        mode: 'cors',
-        dataType: 'json',
-      })
-        .then((response) => {
-          if (response.status >= 400 && response.status < 600) {
-            throw new Error(response.statusText);
-          }
-          return response.json();
-        })
-        .then((data) => {
-          this.tableData = data.rows;
-
-          steem.api.setOptions({ url: 'https://api.steemit.com' });
-          steem.api.getDynamicGlobalProperties((err, result) => {
-            const totalVestingFundSteem = parseFloat(result.total_vesting_fund_steem.split(' ')[0]);
-            const totalVestingShares = parseFloat(result.total_vesting_shares.split(' ')[0]);
-
-            this.calculateSteemPower(totalVestingFundSteem, totalVestingShares);
-            console.log(err, result);
-          });
-        })
-        .catch((error) => {
+      steem.api.getAccounts(botList, (getAccountsError, botAccountList) => {
+        // console.log(getAccountsError, botAccountList);
+        if (getAccountsError) {
           this.isLoading = false;
-          console.log('Request failed', error);
+          this.$notify({ title: 'Error' });
+          return;
+        }
+        this.tableData = botAccountList;
+
+        steem.api.getDynamicGlobalProperties((globalPropsError, result) => {
+          if (globalPropsError) {
+            this.isLoading = false;
+            this.$notify({ title: 'Error' });
+            return;
+          }
+          const totalVestingFundSteem = parseFloat(result.total_vesting_fund_steem.split(' ')[0]);
+          const totalVestingShares = parseFloat(result.total_vesting_shares.split(' ')[0]);
+
+          this.calculateSteemPower(totalVestingFundSteem, totalVestingShares);
         });
+      });
     }, // loadData
-    formatter(valueInt) {
-      let valueStr = valueInt.toString();
-      if (valueStr.length > 6) {
-        valueStr = `${Number((valueInt / 1000000).toFixed(2))}M`;
-      } else if (valueStr.length > 3) {
-        valueStr = `${(valueInt / 1000).toFixed()}k`;
-      }
-      return valueStr;
-    },
     calculateSteemPower(totalVestingFundSteem, totalVestingShares) {
       let newTableData = [];
 
@@ -129,7 +108,7 @@ export default {
 
         let totalSteemPowerRaw = steemPower + (receivedSteemPower - delegatedSteemPower);
         totalSteemPowerRaw = parseInt(totalSteemPowerRaw);
-        const totalSteemPower = this.formatter(totalSteemPowerRaw);
+        const totalSteemPower = this.formatNumber(totalSteemPowerRaw);
 
         const newRow = Object.assign({}, row, {
           steem_power: steemPower,
