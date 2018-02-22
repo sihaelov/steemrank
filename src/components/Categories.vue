@@ -44,7 +44,7 @@ import formatNumberMixin from '@/utils/FormatNumber';
 
 
 export default {
-  name: 'Homepage',
+  name: 'Categories',
   components: {
     'el-card': Card,
     'el-table': Table,
